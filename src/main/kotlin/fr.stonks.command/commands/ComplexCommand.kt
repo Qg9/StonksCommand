@@ -1,11 +1,10 @@
 package fr.stonks.command.commands
 import fr.stonks.command.*
 import fr.stonks.command.arguments.Argument
+import fr.stonks.command.message.Message.*
 import fr.stonks.command.result.CommandResult
-import org.bukkit.command.Command
-import org.bukkit.command.CommandSender
-import org.bukkit.command.ConsoleCommandSender
-import org.bukkit.command.TabCompleter
+import org.bukkit.Location
+import org.bukkit.command.*
 import org.bukkit.entity.Player
 
 interface ComplexCommandBuilder {
@@ -15,7 +14,7 @@ interface ComplexCommandBuilder {
 }
 
 class ComplexCommand(name: String,
-                     val subcommands: MutableList<SubCommandModel>) : Command(name), TabCompleter, ComplexCommandBuilder{
+                     val subcommands: MutableList<SubCommandModel>) : Command(name), ComplexCommandBuilder{
 	
 	data class SubCommandModel(var name: String,
 	                           var action: CommandAction<*>,
@@ -25,7 +24,7 @@ class ComplexCommand(name: String,
 	                           val endInfinite: Boolean) {
 		fun buildArgs(): String {
 			val builder = StringBuilder()
-			for(arg in args)builder.append("${if (arg.essential) "<" else "["} ${arg.name} ${if (arg.essential) ">" else "]"}")
+			for(arg in args)builder.append("${if (arg.essential) "<" else "["}${arg.name}${if (arg.essential) ">" else "]"}")
 			return builder.toString()
 		}
 	}
@@ -40,33 +39,38 @@ class ComplexCommand(name: String,
 		val subcommand = subcommands.firstOrNull { it.name.equals(args[0], true) }
 		
 		if(subcommand == null){
-			sender.sendMessage("§cThis command does not exist")
+			sender.sendMessage(getParser().parse(NO_COMMAND, arrayOf()))
 			return false
 		}
 		
 		if (!sender.hasPermission(subcommand.permission)){
-			sender.sendMessage("§cYou don't have the permission to do that !")
+			sender.sendMessage(getParser().parse(NO_PERMISSION, arrayOf()))
 			return false
 		}
 		
 		if(args.size < subcommand.args.count { it.essential }){
-			return false //"insuffisant argument size"
+			sender.sendMessage(getParser().parse(WRONG_ARG_SIZE, arrayOf()))
+			return false
 		}
 		
 		subcommand.args.withIndex().forEach {
-			if(!it.value.isValid(args[it.index+1]))return false //"argument invalid error"
+			if(!it.value.isValid(args[it.index+1])){
+				sender.sendMessage(getParser().parse(WRONG_ARG_TYPE, arrayOf()))
+				return false
+			}
 		}
-		
-		val resultData = CommandResult(subcommand.args.withIndex().associate {
-			it.value.name to (it.value to args[it.index])
+		var i = 0
+		val resultData = CommandResult(subcommand.args.associate {
+			i+=1
+			it.name to (it to args[i])
 		})
 		
 		val message = when(subcommand.action){
 			is PlayerCommandAction -> if (sender is Player) (subcommand.action as PlayerCommandAction).execute(sender, resultData)
-				else "§cYou must use the console to execute this command !"
+				else getParser().parse(MUST_BE_A_PLAYER, arrayOf())
 				
 			is ConsoleCommandAction -> if (sender is ConsoleCommandSender) (subcommand.action as ConsoleCommandAction).execute(sender, resultData)
-				else "§cYou need to be a player to execute this command !"
+				else getParser().parse(MUST_BE_A_CONSOLE, arrayOf())
 				
 			else -> (subcommand.action as BiCommandAction).execute(sender, resultData)
 		}
@@ -75,25 +79,18 @@ class ComplexCommand(name: String,
 		return true
 	}
 	
-	private fun sendHelpMessage(sender: CommandSender) {
-		sender.sendMessage("§6Command : $name")
-		sender.sendMessage("")
-		for (subcmd in subcommands){
-			sender.sendMessage("§7 - §6/$name ${subcmd.name} ${subcmd.buildArgs()}§7: ${subcmd.description}")
+	override fun tabComplete(sender: CommandSender, alias: String, args: Array<out String>): MutableList<String>  {
+		if (args.size == 1) {
+			return subcommands.filter { it.name.startsWith(args[0], ignoreCase = true) && sender.hasPermission(it.permission) }
+				.map{ it.name }.toMutableList()
 		}
-		sender.sendMessage("")
-	}
-	
-	override fun onTabComplete(sender: CommandSender, command: Command, label: String, args: Array<out String>): MutableList<String> {
-		
-		if (args.isEmpty()) return subcommands.map { it.name }.toMutableList()
 		
 		val subcommand = subcommands.firstOrNull { it.name.equals(args[0], true) }
 		
-		if (subcommand == null || sender.hasPermission(subcommand.permission)) return mutableListOf()
+		if (subcommand == null || !sender.hasPermission(subcommand.permission)) return mutableListOf()
 		
 		return try {
-			subcommand.args[args.size].possibility.filter { it.startsWith(args.last(), ignoreCase = true) }.toMutableList()
+			subcommand.args[args.size-2].possibilities().filter { it.startsWith(args.last(), ignoreCase = true) }.toMutableList()
 		} catch (e: Exception) {
 			mutableListOf()
 		}
