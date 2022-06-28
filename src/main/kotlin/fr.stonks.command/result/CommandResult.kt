@@ -4,6 +4,11 @@ import fr.stonks.command.arguments.Argument
 
 data class CommandResult(private val arguments: Map<String, Pair<Argument<*>, String>>) {
 	
+	init {
+		println(arguments.map { it.key + " : " + it.value }.toString())
+		
+	}
+	
 	fun <T> get(argument: String) : T {
 		val result = arguments[argument] ?:
 			throw NullPointerException("The argument $argument isn't present or doesn't exist !")

@@ -1,9 +1,5 @@
 package fr.stonks.command.commands
 
-import org.bukkit.command.Command
-import org.bukkit.command.CommandSender
-import org.bukkit.entity.Player
-import java.lang.reflect.Method
 /*
 class SimpleCommand (name: String, var annotation: Cmd, var element: Any, var function: Method) : Command(name){
 	
