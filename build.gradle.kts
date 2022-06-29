@@ -4,14 +4,14 @@ plugins {
     `maven-publish`
 }
 
-group = "org.example"
+group = "fr.qg"
 version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
-    maven(url="https://repo.papermc.io/repository/maven-public/")
+    maven(url="https://maven.imanity.dev/repository/imanity-libraries")
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.18.2-R0.1-SNAPSHOT")
+    compileOnly("org.imanity.paperspigot:paper1.8.8:1.8.8")
 }
