@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm") version "1.6.21"
     id("com.github.johnrengelman.shadow") version "6.1.0"
-    
+    `maven-publish`
 }
 
 group = "org.example"

@@ -5,3 +5,4 @@ gradle.properties
 settings.gradle.kts
 gradlew
 gradlew.bat
+build
