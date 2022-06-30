@@ -19,7 +19,6 @@ private fun createMap() : CommandMap{
 
 fun JavaPlugin.create(name: String) : ComplexCommand {
 	val cmd = ComplexCommand(name, mutableListOf())
-	if (commandMap.knownCommands.containsKey(name)) commandMap.knownCommands.remove(name)
 	commandMap.register(name, cmd)
 	
 	return cmd
